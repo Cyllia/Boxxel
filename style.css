@@ -1,0 +1,27 @@
+body {
+    background: rgb(176, 149, 30);
+    margin: 0;
+    overflow: hidden;
+}
+
+#gameboard{
+    width: 100vw;
+    position: absolute;
+    display: grid;
+    grid-template-columns: repeat(10, 4vw);
+    grid-template-rows: repeat(10, 4vw);
+    height: 100vh;
+    background-color: rgb(118, 181, 235);
+}
+
+#gameboard>div{
+    width: 4vw;
+    height: 4vw;
+    box-sizing: border-box;
+}
+
+.cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+}
