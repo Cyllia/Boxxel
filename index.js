@@ -1,6 +1,7 @@
 import { Levels } from './level.js';
 
 let niveau = 0;
+let lastDirection = "stop";
 
 //vérifie qu'il y a au moins une boîte dans le niveau
 function hasBox(grid) {
@@ -13,6 +14,7 @@ if (!hasBox(grid)) {
   alert("Ce niveau ne contient aucune boîte !");
   throw new Error("Niveau invalide : aucune boîte présente.");
 }
+
 
 gridToMap(grid);
 
@@ -29,8 +31,9 @@ function gridToMap(level) {
   let divall = document.createElement("div");
   divall.classList.add("divall");
   divall.style.display = "grid";
-  divall.style.gridTemplateColumns = `repeat(${level[0].length}, 40px)`;
-  divall.style.gridTemplateRows = `repeat(${level.length}, 40px)`;
+  divall.style.gridTemplateColumns = `repeat(${level[0].length}, 50px)`;
+  divall.style.gridTemplateRows = `repeat(${level.length}, 45px)`;
+  divall.style.gap = "0px";
 
   //parcourt la grille pour créé un div correspondant
   level.forEach(row => {
@@ -54,26 +57,33 @@ function squaresAttributions(index, squarediv) {
 
   switch (index) {
     case 0: //vide
-      //squarediv.style.backgroundImage = "url(../img/empty.png)";
+      squarediv.style.backgroundImage = "url(../images/mur3.jpg)";
       break;
     case 1: //mur
-      squarediv.style.backgroundImage = "url(../images/mur3.jpg)";
+      squarediv.style.backgroundImage = "url(../images/mur.jpg)";
       squarediv.style.border = '1px solid black';
       break;
     case 2: //box
       squarediv.style.backgroundImage = "url(../images/caisse_en_bois.png)";
-      squarediv.style.border = '1px solid black';
       break;
     case 3: //personnage
-      squarediv.style.backgroundImage = "url(../images/personnage/personnage_stop.png)";
+    squarediv.style.width = "45px";
+    squarediv.style.height = "50px";
+    if (lastDirection === "left") {
+        squarediv.style.backgroundImage = "url(../images/personnage/personnage_gauche.png)";
+      } else if (lastDirection === "right") {
+        squarediv.style.backgroundImage = "url(../images/personnage/personnage_droite.png)";
+      } else {
+        squarediv.style.backgroundImage = "url(../images/personnage/personnage_stop.png)";
+      }
       break;
     case 4: //objectif
+      squarediv.style.width = "50px";
+      squarediv.style.height = "50px";
       squarediv.style.backgroundImage = "url(../images/objectif.png)";
-      squarediv.style.border = '1px solid black';
       break;
     case 5: //objectif atteint
       squarediv.style.backgroundImage = "url(../images/caisse_en_bois.png)";
-      squarediv.style.border = '1px solid black';
       squarediv.style.backgroundColor = 'lightgreen'; //boîte bien placée
       break;
   }
@@ -130,11 +140,19 @@ document.addEventListener('keydown', (event) => {
   let moved = false;
 
   //direction du déplacement
-  if (event.code === 'ArrowUp') dy = -1;
-  else if (event.code === 'ArrowDown') dy = 1;
-  else if (event.code === 'ArrowLeft') dx = -1;
-  else if (event.code === 'ArrowRight') dx = 1;
-  else return;
+  if (event.code === 'ArrowUp') {
+    dy = -1;
+    lastDirection = "up";
+  } else if (event.code === 'ArrowDown') {
+    dy = 1;
+    lastDirection = "down";
+  } else if (event.code === 'ArrowLeft') {
+    dx = -1;
+    lastDirection = "left";
+  } else if (event.code === 'ArrowRight') {
+    dx = 1;
+    lastDirection = "right";
+  } else return;
 
   const ny = y + dy, nx = x + dx;
   const nny = y + 2 * dy, nnx = x + 2 * dx;
