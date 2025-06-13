@@ -2,6 +2,7 @@ import { Levels } from './level.js';
 
 let niveau = 0;
 let lastDirection = "stop";
+let steps = 0;
 
 //vérifie qu'il y a au moins une boîte dans le niveau
 function hasBox(grid) {
@@ -32,7 +33,7 @@ function gridToMap(level) {
   divall.classList.add("divall");
   divall.style.display = "grid";
   divall.style.gridTemplateColumns = `repeat(${level[0].length}, 50px)`;
-  divall.style.gridTemplateRows = `repeat(${level.length}, 45px)`;
+  divall.style.gridTemplateRows = `repeat(${level.length}, 50px)`;
   divall.style.gap = "0px";
 
   //parcourt la grille pour créé un div correspondant
@@ -49,9 +50,9 @@ function gridToMap(level) {
 
 //attribue le style et l'image à chaque case selon son type
 function squaresAttributions(index, squarediv) {
-  squarediv.style.width = "40px";
-  squarediv.style.height = "40px";
-  squarediv.style.backgroundSize = "contain";
+  squarediv.style.width = "50px";
+  squarediv.style.height = "50px";
+  squarediv.style.backgroundSize = "cover, contain";
   squarediv.style.backgroundRepeat = "no-repeat";
   squarediv.style.backgroundPosition = "center";
 
@@ -61,26 +62,23 @@ function squaresAttributions(index, squarediv) {
       break;
     case 1: //mur
       squarediv.style.backgroundImage = "url(../images/mur.jpg)";
-      squarediv.style.border = '1px solid black';
       break;
     case 2: //box
-      squarediv.style.backgroundImage = "url(../images/caisse_en_bois.png)";
+      squarediv.style.backgroundImage = "url(../images/caisse.jpg)";
       break;
     case 3: //personnage
-    squarediv.style.width = "45px";
-    squarediv.style.height = "50px";
-    if (lastDirection === "left") {
-        squarediv.style.backgroundImage = "url(../images/personnage/personnage_gauche.png)";
+      if (lastDirection === "left") {
+        squarediv.style.backgroundImage = "url(../images/personnage/gauche.jpg)";
       } else if (lastDirection === "right") {
-        squarediv.style.backgroundImage = "url(../images/personnage/personnage_droite.png)";
+        squarediv.style.backgroundImage = "url(../images/personnage/droite.jpg)";
       } else {
-        squarediv.style.backgroundImage = "url(../images/personnage/personnage_stop.png)";
+        squarediv.style.backgroundImage = "url(../images/personnage/stop.jpg)";
       }
       break;
     case 4: //objectif
       squarediv.style.width = "50px";
       squarediv.style.height = "50px";
-      squarediv.style.backgroundImage = "url(../images/objectif.png)";
+      squarediv.style.backgroundImage = "url(../images/fin.jpg)";
       break;
     case 5: //objectif atteint
       squarediv.style.backgroundImage = "url(../images/caisse_en_bois.png)";
@@ -124,6 +122,8 @@ function updateGrid(grid, fromY, fromX, toY, toX, isBoxMove, boxToY, boxToX) {
 //reset le niveau courant
 function resetLevel() {
   grid = deepCopyGrid(Levels[niveau]);
+  steps = 0;
+  document.getElementById('step-counter').textContent = `Pas : ${steps}`;
   gridToMap(grid);
 }
 
@@ -166,11 +166,15 @@ document.addEventListener('keydown', (event) => {
   }
 
   if (moved) {
+    steps++;
+    document.getElementById('step-counter').textContent = `Pas : ${steps}`;
     if (detectWin(grid, niveau)) {
       alert("Niveau complété !");
       niveau++;
       if (Levels[niveau]) {
         grid = deepCopyGrid(Levels[niveau]);
+        steps = 0;
+        document.getElementById('step-counter').textContent = `Pas : ${steps}`;
         if (!hasBox(grid)) {
           alert("Ce niveau ne contient aucune boîte !");
           throw new Error("Niveau invalide : aucune boîte présente.");
