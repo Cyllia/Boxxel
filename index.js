@@ -1,118 +1,171 @@
 import { Levels } from './level.js';
 
-const GRID_WIDTH = 50;
-const GRID_HEIGHT = 25;
-const fps = 10;
+let niveau = 0;
 
-const keys = {
-  37: 'left',
-  39: 'right',
-  38: 'up',
-  40: 'down'
-};
+//vérifie qu'il y a au moins une boîte dans le niveau
+function hasBox(grid) {
+  return grid.flat().includes(2) || grid.flat().includes(5);
+}
 
-let currentLevel = 0;
-let level = [];
-let canvas, ctx;
-let player = { x: 0, y: 0 };
+//initialise la grille du niveau courant
+let grid = JSON.parse(JSON.stringify(Levels[niveau]));
+if (!hasBox(grid)) {
+  alert("Ce niveau ne contient aucune boîte !");
+  throw new Error("Niveau invalide : aucune boîte présente.");
+}
 
-function loadLevel() {
-  level = Levels[currentLevel].map(row => [...row]);
+gridToMap(grid);
 
-  // Trouver la position du joueur (2)
-  for (let y = 0; y < level.length; y++) {
-    for (let x = 0; x < level[y].length; x++) {
-      if (level[y][x] === 2) {
-        player.x = x;
-        player.y = y;
+//copie profonde de la grille
+function deepCopyGrid(level) {
+  return JSON.parse(JSON.stringify(level));
+}
+
+//montre la grille sous forme de divs HTML
+function gridToMap(level) {
+  const existingDiv = document.querySelector('.divall');
+  if (existingDiv) existingDiv.remove();
+
+  let divall = document.createElement("div");
+  divall.classList.add("divall");
+  divall.style.display = "grid";
+  divall.style.gridTemplateColumns = `repeat(${level[0].length}, 40px)`;
+  divall.style.gridTemplateRows = `repeat(${level.length}, 40px)`;
+
+  //parcourt la grille pour créé un div correspondant
+  level.forEach(row => {
+    row.forEach(cell => {
+      let squarediv = document.createElement("div");
+      squaresAttributions(cell, squarediv);
+      divall.appendChild(squarediv);
+    });
+  });
+
+  document.body.appendChild(divall);
+}
+
+//attribue le style et l'image à chaque case selon son type
+function squaresAttributions(index, squarediv) {
+  squarediv.style.width = "40px";
+  squarediv.style.height = "40px";
+  squarediv.style.backgroundSize = "contain";
+  squarediv.style.backgroundRepeat = "no-repeat";
+  squarediv.style.backgroundPosition = "center";
+
+  switch (index) {
+    case 0: //vide
+      //squarediv.style.backgroundImage = "url(../img/empty.png)";
+      break;
+    case 1: //mur
+      squarediv.style.backgroundImage = "url(../images/mur3.jpg)";
+      squarediv.style.border = '1px solid black';
+      break;
+    case 2: //box
+      squarediv.style.backgroundImage = "url(../images/caisse_en_bois.png)";
+      squarediv.style.border = '1px solid black';
+      break;
+    case 3: //personnage
+      squarediv.style.backgroundImage = "url(../images/personnage/personnage_stop.png)";
+      break;
+    case 4: //objectif
+      squarediv.style.backgroundImage = "url(../images/objectif.png)";
+      squarediv.style.border = '1px solid black';
+      break;
+    case 5: //objectif atteint
+      squarediv.style.backgroundImage = "url(../images/caisse_en_bois.png)";
+      squarediv.style.border = '1px solid black';
+      squarediv.style.backgroundColor = 'lightgreen'; //boîte bien placée
+      break;
+  }
+}
+
+//trouve la position du joueur dans la grille
+function startingPos(grid) {
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (grid[i][j] === 3) return [i, j];
+    }
+  }
+  return [-1, -1];
+}
+
+//vérifie si toutes les objectif sont couverts par des boîtes
+function detectWin(grid, levelIndex) {
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (Levels[levelIndex][i][j] === 4 && grid[i][j] !== 5) {
+        return false;
       }
     }
   }
+  return true;
 }
 
-function init() {
-  const gameboard = document.getElementById("gameboard");
-
-  // Créer le canvas dynamiquement
-  canvas = document.createElement("canvas");
-  canvas.width = GRID_WIDTH * Levels[0][0].length;
-  canvas.height = GRID_HEIGHT * Levels[0].length;
-  gameboard.appendChild(canvas);
-
-  ctx = canvas.getContext("2d");
-
-  loadLevel();
-  window.addEventListener('keydown', handleKey);
-  draw();
-}
-
-
-function drawTile(type, x, y) {
-  switch (type) {
-    case 1: // mur
-      ctx.fillStyle = "black";
-      break;
-    case 0: // sol
-      ctx.fillStyle = "white";
-      break;
-    case 3: // caisse
-      ctx.fillStyle = "brown";
-      break;
-    case 4: // objectif
-      ctx.fillStyle = "yellow";
-      break;
-    case 2: // joueur
-      ctx.fillStyle = "blue";
-      break;
-    default:
-      ctx.fillStyle = "grey";
-  }
-
-  ctx.fillRect(x * GRID_WIDTH, y * GRID_HEIGHT, GRID_WIDTH, GRID_HEIGHT);
-}
-
-function handleKey(e) {
-  const dir = keys[e.keyCode];
-  if (!dir) return;
-
-  let dx = 0, dy = 0;
-  if (dir === 'left') dx = -1;
-  if (dir === 'right') dx = 1;
-  if (dir === 'up') dy = -1;
-  if (dir === 'down') dy = 1;
-
-  const nx = player.x + dx;
-  const ny = player.y + dy;
-
-  if (level[ny][nx] === 0 || level[ny][nx] === 4) {
-    player.x = nx;
-    player.y = ny;
+//maj de la grille après un déplacement
+function updateGrid(grid, fromY, fromX, toY, toX, isBoxMove, boxToY, boxToX) {
+  const val = grid[fromY][fromX];
+  grid[fromY][fromX] = Levels[niveau][fromY][fromX] === 4 ? 4 : 0;
+  grid[toY][toX] = val;
+  if (isBoxMove) {
+    grid[boxToY][boxToX] = Levels[niveau][boxToY][boxToX] === 4 ? 5 : 2;
   }
 }
 
-window.onload = init;
+//reset le niveau courant
+function resetLevel() {
+  grid = deepCopyGrid(Levels[niveau]);
+  gridToMap(grid);
+}
 
-console.log("Script chargé !");
+//boucle de jeu (peut servir pour des animations futures)
+function gameLoop() {
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
 
-const gameboard = document.getElementById("gameboard");
+//gestion des déplacements clavier
+document.addEventListener('keydown', (event) => {
+  const [y, x] = startingPos(grid);
+  let dy = 0, dx = 0;
+  let moved = false;
 
-const createCell = (x, y) => {
-    const cell = document.createElement("div");
-    cell.classList.add("cell");
-    cell.style.gridColumnStart = x + 1;
-    cell.style.gridRowStart = y + 1;
-    return cell;
-};
+  //direction du déplacement
+  if (event.code === 'ArrowUp') dy = -1;
+  else if (event.code === 'ArrowDown') dy = 1;
+  else if (event.code === 'ArrowLeft') dx = -1;
+  else if (event.code === 'ArrowRight') dx = 1;
+  else return;
 
-const drawTestGrid = () => {
-    gameboard.innerHTML = "";
-    gameboard.style.display = "grid";
-    gameboard.style.gridTemplateColumns = `repeat(${GRID_WIDTH}, 20px)`;
-    gameboard.style.gridTemplateRows = `repeat(${GRID_HEIGHT}, 20px)`;
+  const ny = y + dy, nx = x + dx;
+  const nny = y + 2 * dy, nnx = x + 2 * dx;
 
-    const testCell = createCell(2, 2); // Exemple : une seule case en haut à gauche
-    testCell.style.backgroundColor = "red";
-    gameboard.appendChild(testCell);
-};
+  if (grid[ny][nx] === 0 || grid[ny][nx] === 4) {
+    updateGrid(grid, y, x, ny, nx, false);
+    moved = true;
+  } else if ((grid[ny][nx] === 2 || grid[ny][nx] === 5) && (grid[nny][nnx] === 0 || grid[nny][nnx] === 4)) {
+    updateGrid(grid, y, x, ny, nx, true, nny, nnx);
+    moved = true;
+  }
 
-drawTestGrid();
+  if (moved) {
+    if (detectWin(grid, niveau)) {
+      alert("Niveau complété !");
+      niveau++;
+      if (Levels[niveau]) {
+        grid = deepCopyGrid(Levels[niveau]);
+        if (!hasBox(grid)) {
+          alert("Ce niveau ne contient aucune boîte !");
+          throw new Error("Niveau invalide : aucune boîte présente.");
+        }
+      } else {
+        alert("Félicitations, vous avez terminé tous les niveaux !");
+        niveau = 0;
+        grid = deepCopyGrid(Levels[niveau]);
+      }
+    }
+    gridToMap(grid);
+  }
+});
+
+//gestion bouton
+document.getElementById("reset").addEventListener("click", resetLevel);
